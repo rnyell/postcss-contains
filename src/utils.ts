@@ -1,10 +1,11 @@
-// import type { Declaration } from "postcss";
+import type { Container } from "postcss";
 
 // /^\(([\w-]+)(?:\s*:\s*([^)]+))?\)$/
 
-export function getParams(text: string) {
+export function getParams(params: string) {
   const regex = /\((.*?)\)/;
-  const match = text.match(regex);
+  const normed = params.trim().replace(/(\r\n|\n|\r)/gm,"").replace(/\t/g," ");
+  const match = normed.match(regex);
 
   if (match && match[1]) {
     return match[1];
@@ -13,26 +14,24 @@ export function getParams(text: string) {
   }
 }
 
+export function lastDecl(container: Container) {
+  let last = container.last;
 
-// type M = Map<string, string>
+  if (!last) {
+    return undefined;
+  }
 
-// export function mapper(target: M, source: M) {
-//   target.forEach((value, property) => {
-//     source.set(property, value)
-//   })
-// }
+  if (last.type === "decl") {
+    return last;
+  } 
+  
+  while (
+    last?.type === "rule" ||
+    last?.type === "atrule" ||
+    last?.type === "comment"
+  ) {
+    last = last.prev();
+  }
 
-
-// export function create() {
-//   const declarations = new Set<Declaration>();
-
-//   for (const node of atRule.nodes) {
-//     if (node.type === "decl") {
-//       const { prop, value, important } = node;
-//       const declaration = new Declaration({ prop, value, important })
-//       declarations.add(declaration)
-//     }
-//   }
-
-//   return declarations
-// }
+  return last;
+}

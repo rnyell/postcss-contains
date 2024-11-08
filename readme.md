@@ -4,8 +4,8 @@
 
 The `@contains` at-rule targets selectors when they _contain_:
 
-  - A specific property (e.g., position or margin)
-  - A specific declaration (property-value pair, e.g., display: grid)
+  - A specific property (e.g., `position` or `margin`)
+  - A specific declaration (property-value pair, e.g., `display: grid`)
 
 
 ## Installation
@@ -90,7 +90,9 @@ div {
 
 ### Duplications
 
-- If two `@contains` target the same property/declaration, their styles will be merged. However, you can change this behavior by setting `duplication` option to `"replace"`; in this case, the order of appearance will determine which style should be applied: the latter contains taking precedence over the former.
+- If two `@contains` target the same property/declaration, their styles will be merged.
+
+You can change this behavior by setting `duplication` option to `"replace"`; in this case, the order of appearance will determine which style should be applied: the latter contains taking precedence over the former.
 
 > Note: The `overrides` only affects the conflicts between @contains and selectors, not between duplicated @contains rules.
 
@@ -101,65 +103,39 @@ See [options](#options) for more.
 
 ### Specificity
 
-- Property-value matches take precedence over property-only matches. In this example `display: iniline-block` is more specific than `display`, so it wins the conflict over `color`.
+- "Property-value" matches considered with a specificity so they take precedence over "property-only" matches.
+
+In the example below, `overflow: hidden` is more speccific than `display`, so `span` gets the `green` color; howwever the third contains also has a color declaration, since `display: block` and `overflow: hidden` have equal specificity —both are paird— then based on the order of appearance the color will be `blue`.
 
 ```css
 @contains (display) {
   color: red;
 }
 
-@contains (display: inline-block) {
+@contains (overflow: hidden) {
+  color: green;
+}
+
+@contains (display: block) {
   color: blue;
 }
 
-div {
-  display: inline-block;
+span {
+  overflow: hidden;
+  display: block;
 }
 ```
 
 Output:
 
 ```css
-div {
-  display: inline-block;
+span {
+  overflow: hidden;
+  display: block;
   color: blue;
 }
 ```
 
-A wrap up example:
-
-```css
-/* a */
-@contains overrides (padding) {
-  margin: 0;
-  color: black;
-  border: none;
-}
-
-/* b */
-@contains (padding: 1rem) {
-  border: 2px dashed;
-  color: white;
-}
-
-div {
-  margin: 5px;
-  padding: 1rem;
-  border: 1px solid;
-}
-```
-
-Output:
-
-```css
-div {
-  margin: 0;      /* "div" and "a" both has margin but since "a" defined with `overrides` it won the conflict */
-  color: white;   /* "b"'s condition is a property-value pair and more specific than "a" so won the 'color conflict' */
-  border: 1px solid;
-  /* "b" is pair so wins 'border conflict' over "a", but the `div` itself take precedence over "b".
-     "b" would defeat the "div" if it had the `overrides` keyword */
-}
-```
 
 ## Options
 

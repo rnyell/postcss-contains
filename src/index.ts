@@ -1,22 +1,27 @@
-import type { PluginCreator, AtRule, Declaration } from "postcss";
-import { Stash, Contains } from "./contains.js";
+import type { PluginCreator, AtRule } from "postcss";
+import Contains from "./contains.js";
 import { getParams } from "./utils.js";
 
 
-interface PluginOptions {}
+interface PluginOptions {
+  duplication: "merge" | "replace"
+}
 
 
 const plugin: PluginCreator<PluginOptions> = (opts?: PluginOptions) => {
+  const defaults: PluginOptions = { duplication: "merge" }
+  const options = Object.assign(defaults, opts)
 
-  const stash = new Stash("merge");
+  const contains = new Contains(options.duplication);
   
   return {
     postcssPlugin: "postcss-contains",
     
-    Once(root, { Declaration }) {
+    Once(root, { result }) {
 
       root.walkAtRules("contains", (atRule: AtRule) => {
         const params = getParams(atRule.params);
+        const overrides = atRule.params.startsWith("overrides");
 
         if (params === null) {
           console.log(params);
@@ -28,23 +33,28 @@ const plugin: PluginCreator<PluginOptions> = (opts?: PluginOptions) => {
           return;
         }
 
-        const isPair = params.includes(":");
-        const isSingle = !isPair;
-        const overrides = atRule.params.includes("overrides");
+        const isInvalidType = atRule.nodes.some(child => 
+          child.type === "rule" || child.type === "atrule"
+        );
 
-        const invalidTypes = atRule.nodes.some(
-          child => child.type === "rule" || child.type === "atrule"
-        )
-
-        if (invalidTypes) {
-          console.log("WARNS: rules and at-rules can not be nested inside @contains");
-          // return;
-          // throw atRule.error("invalid node type: rules and at-rules can not be nested inside @contains")
+        if (isInvalidType) {
+          atRule.warn(result, "WARNS: rules and at-rules can not be nested inside @contains");
+          // throw atRule.error("invalid node type: rules and at-rules can not be nested inside @contains");
+          return;
         }
 
+        const isPair = params.includes(":");
+        const isSingle = !isPair;
+
         if (isPair) {
-          const [prop, value] = params.split(":").map((p) => p.trim());
-          const declarations = new Map();
+          const [property, value] = params.split(":").map((p) => p.trim());
+          const variant: "pair" | "single" = "pair"
+          const declarations = new Map<string, string>();
+
+          if (!property || !value) {
+            console.log("(property: value) --> undefined", property, value);
+            return;
+          }
 
           for (const node of atRule.nodes) {
             if (node.type === "decl") {
@@ -54,39 +64,46 @@ const plugin: PluginCreator<PluginOptions> = (opts?: PluginOptions) => {
             }
           }
 
-          const contains = new Contains(prop!, "pair", value)
-          contains.set(declarations, overrides)
-          stash.add(contains)
+          const bucket = { value, variant, overrides, declarations }
+          contains.add(property, bucket)
           atRule.remove()
           return;
         }
 
         if (isSingle) {
-          const prop = params;
-          const declarations = new Map();
+          const property = params;
+          const variant: "pair" | "single" = "single"
+          const declarations = new Map<string, string>();
+
+          if (!property) {
+            console.log("(property) --> undefined", property);
+            return;
+          }
 
           for (const node of atRule.nodes) {
             if (node.type === "decl") {
               const { prop, value, important } = node;
-              // const declaration = new Declaration({ prop, value, important })
               declarations.set(prop, value)
             }
           }
 
-          const contains = new Contains(prop!, "single")
-          contains.set(declarations, overrides)
-          stash.add(contains)
+          const bucket = { value: null, variant, overrides, declarations }
+          contains.add(property, bucket)
           atRule.remove()
           return;
         }
       });
     },
 
-    Rule(rule, helper) {
-      stash.start(rule)
-      stash.process()
-      stash.end()
+    Rule(rule) {
+      contains.start(rule)
+      contains.process()
+      contains.end()
     },
+
+    OnceExit() {
+      contains.reset();
+    }
   };
 }
 

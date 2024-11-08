@@ -1,17 +1,23 @@
-import type { Container, Declaration, Helpers } from "postcss";
+import type { Container } from "postcss";
+import { lastDecl } from "./utils.js";
 
 type Duplication = "merge" | "replace";
 
 type Variant = "pair" | "single";
 
-type Status = "add" | "discard"
-
 type Bucket = {
   variant: Variant;
-  value: string;
+  value: string | null;
   overrides?: boolean;
   declarations: Map<string, string>;
 };
+
+// type Bucket<T extends Variant> = {
+//   variant: T;
+//   value: T extends "single" ? string | undefined : string;
+//   overrides?: boolean;
+//   declarations: Map<string, string>;
+// };
 
 type Pile = {
   variant: Variant;
@@ -19,36 +25,44 @@ type Pile = {
   declarations: Map<string, string>;
 };
 
-type Meet = {
-  property: string;
-  value?: string;
+type Vals = {
   variant: Variant;
+  value: string;
+  overrides: boolean | undefined;
 };
+
+type Pack = {
+  property: string;
+  bucket: Bucket;
+};
+
+type Store = Set<Pack>;
+
+const STORE: Store = new Set();
 
 
 class Pairs {
   #duplication: Duplication = "merge";
   properties: string[] = [];
   buckets: Bucket[] = [];
-  // holds the indices of matched properties temply
-  static indices: number[] = [];
-  static duplicatedIndex: number | null;
+  static indices: number[] = [];          // holds the indices of matched properties temply
+  static duplicatedIndex: number | null;  // holde duplicated index temply
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
   }
 
-  add(property: string, bucket: Bucket): Status {
+  add(property: string, bucket: Bucket) {
     const isDuplicated = this.isDuplicated(property, bucket);
 
     if (isDuplicated) {
       this.resolve(bucket);
-      return "discard";
+      return;
     }
 
     this.properties.push(property);
     this.buckets.push(bucket);
-    return "add";
+    STORE.add({ property, bucket });
   }
 
   isDuplicated(property: string, bucket: Bucket) {
@@ -69,46 +83,51 @@ class Pairs {
   }
 
   resolve(bucket: Bucket) {
-    const oldBucket = this.buckets[Pairs.duplicatedIndex!];  //!
-    const oldDecls = oldBucket?.declarations;
-    const newDecls = bucket.declarations;
+    let oldBucket = this.buckets[Pairs.duplicatedIndex!];  //!
+    let oldDecls = oldBucket?.declarations;
+    let newDecls = bucket.declarations;
 
     if (oldDecls) {
       if (this.#duplication === "merge") {
         const mergedDecls = new Map([...oldDecls, ...newDecls]);
-        oldBucket.declarations = mergedDecls;
-        oldBucket.overrides = oldBucket.overrides || bucket.overrides;
+        oldBucket!.declarations = mergedDecls;                             //!
+        oldBucket!.overrides = oldBucket?.overrides || bucket?.overrides;  //!
       } else {
-        oldBucket.declarations = newDecls;
-        oldBucket.overrides = bucket.overrides;
+        oldBucket!.declarations = newDecls;       //!
+        oldBucket!.overrides = bucket.overrides;  //!
       }
     }
 
     Pairs.indices = [];
     Pairs.duplicatedIndex = null;
   }
+
+  reset() {
+    this.properties = [];
+    this.buckets = [];
+  }
 }
 
 
 class Singles {
   #duplication: Duplication = "merge";
-  #piles = new Map<string, Pile>();
+  #piles = new Map<string, Pile>();          //+ Wrrr: "V" is `Pile` but we are sending `Bucket`
   static duplicatedProperty: string | null;
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
   }
 
-  add(property: string, bucket: Bucket): Status {
+  add(property: string, bucket: Bucket) {
     const isDuplicated = this.isDuplicated(property);
 
     if (isDuplicated) {
       this.resolve(bucket);
-      return "discard";
+      return;
     }
 
     this.#piles.set(property, bucket);
-    return "add";
+    STORE.add({ property, bucket });
   }
 
   isDuplicated(property: string) {
@@ -124,109 +143,73 @@ class Singles {
     const property = Singles.duplicatedProperty;
 
     if (property) {
-      const oldBucket = this.#piles.get(property);
-      const oldDecls = this.#piles.get(property)?.declarations;
-      const newDecls = bucket.declarations;
+      let oldBucket = this.#piles.get(property);
+      let oldDecls = this.#piles.get(property)?.declarations;
+      let newDecls = bucket.declarations;
 
       if (oldDecls) {
         if (this.#duplication === "merge") {
-          const mergedDecls = new Map([...oldDecls, ...newDecls]);
-          oldBucket!.declarations = mergedDecls; //!
-          oldBucket!.overrides = oldBucket!.overrides || bucket.overrides
+          let mergedDecls = new Map([...oldDecls, ...newDecls]);
+          oldBucket!.declarations = mergedDecls;                           //!
+          oldBucket!.overrides = oldBucket!.overrides || bucket.overrides; //!
         } else {
-          oldBucket!.declarations = bucket.declarations;
-          oldBucket!.overrides = bucket.overrides;
+          oldBucket!.declarations = bucket.declarations;  //!
+          oldBucket!.overrides = bucket.overrides;        //!
         }
       }
     }
 
     Singles.duplicatedProperty = null;
   }
+
+  reset() {
+    this.#piles.clear();
+  }
 }
 
 
-export class Stash {
+export default class Contains {
   #duplication: Duplication = "merge";
-  #container!: Container | undefined;
-
-  #store = new Set<Map<string, Bucket>>();           // store @contains condition with their styles by `Once` method
-  #singles = new Singles(this.#duplication);
-  #pairs = new Pairs(this.#duplication);
-
-  static meets = new Set<Meet>();                    // holds matched @contains temporarily
-  static declarations = new Map<string, string>();   // holds all containers' decls temporarily
+  #container: Container | undefined;
+  #pairs;
+  #singles;
+  static declarations = new Map<string, Vals>();    // holds all containers' decls temporarily
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
+    this.#singles = new Singles(this.#duplication);
+    this.#pairs = new Pairs(this.#duplication);
   }
 
-  // 1) collecting @contains
+  // 1) collecting all @contains: conditions and their declarations
   add(property: string, bucket: Bucket) {
-    let status: Status;
-
     if (bucket.variant === "pair") {
-      status = this.#pairs.add(property, bucket);
-    } else {
-      status = this.#singles.add(property, bucket);
-    }
-
-    if (status === "add") {
-      const map = new Map([[property, bucket]]);
-      this.#store.add(map);
+      this.#pairs.add(property, bucket);
+    } else if (bucket.variant === "single") {
+      this.#singles.add(property, bucket);
     }
   }
 
-  // 2) working with container & nodes
-  start(container: Container) {
-    this.#container = container;
-  }
+  // 2) check each rule to find matches property/declaration
+  find() {
+    let found: boolean | undefined;
 
-  process() {
-    const satisfied = this.satisfy();
-
-    if (satisfied) {
-      this.#container?.each((child) => {});
-    } else {
-      return;
-    }
-  }
-
-  end() {
-    this.#container = undefined;
-  }
-
-  satisfy() {
-    let satisfied: boolean | undefined;
-
-    // #container can't be `undefined` here, so `!` is used
-    this.#container!.each((child, index) => {
+    // #container can't be `undefined` here, so `!` is used //!
+    this.#container!.each(child => {
       if (child.type === "decl") {
-        for (const [property, bucket] of this.#store) {
+        for (const pack of STORE) {
+          const property = pack.property;
+          const bucket = pack.bucket;
+
           if (bucket.variant === "pair") {
             if (child.prop === property && child.value === bucket.value) {
-              satisfied = true;
-              Stash.meets.add({
-                property,
-                value: bucket.value,
-                variant: bucket.variant,
-              });
-              this.#pairs.set(property, bucket);
-              bucket.declarations.forEach((value, property) => {
-                Stash.declarations.set(property, value);
-              });
-            } else {
-              return;
+              Contains.setDecls(bucket);
+              found = true;
             }
           } else if (bucket.variant === "single") {
             if (child.prop === property) {
-              satisfied = true;
-              Stash.meets.add({ property, variant: bucket.variant });
-              this.#singles.set(property, bucket);
-              bucket.declarations.forEach((value, property) => {
-                Stash.declarations.set(property, value);
-              });
-            } else {
-              return;
+              Contains.setDecls(bucket);
+              found = true;
             }
           }
         }
@@ -235,13 +218,81 @@ export class Stash {
       }
     });
 
-    return satisfied;
+    return found;
   }
 
-  resolveConflicts() {}
+  static setDecls(bucket: Bucket) {
+    let variant = bucket.variant;
+    let overrides = bucket.overrides;
+    let declarations = bucket.declarations;
+
+    for (const [property, value] of declarations) {
+      /** 
+       * if a property already exist: 
+       *  - the "pair" one should overwrite the "single" one
+       *  - the later "pair" should overwrite the previous one
+      */
+      if (this.declarations.has(property)) {
+        const existingVariant = this.declarations.get(property)?.variant
+        if (existingVariant === "pair" && variant === "single") {
+          continue;
+        } else {
+          const val = { value, overrides, variant };
+          this.declarations.set(property, val);  
+        }
+      } else {
+        const val = { value, overrides, variant };
+        this.declarations.set(property, val);
+      }
+    }
+  }
+
+  // 3) processe and mutate nodes
+  start(container: Container) {
+    this.#container = container;
+  }
+
+  process() {
+    const found = this.find();
+
+    if (found) {
+      this.#container?.each(child => {
+        if (child.type === "decl") {
+          if (Contains.declarations.has(child.prop)) {
+            const vals = Contains.declarations.get(child.prop);
+            if (vals?.overrides) {
+              child.remove();
+            } else {
+              Contains.declarations.delete(child.prop);
+            }
+          }
+        }
+      })
+    } else {
+      return;
+    }
+
+    const last = lastDecl(this.#container!);  //!
+    const temp = last?.cloneAfter();
+
+    for (const [property, vals] of Contains.declarations) {
+      temp?.before({
+        prop: property,
+        value: vals.value,
+      })
+    }
+
+    temp?.remove();
+  }
+
+  end() {
+    this.#container = undefined;
+    Contains.declarations.clear();
+  }
+
+  reset() {
+    STORE.clear();
+    this.#pairs.reset();
+    this.#singles.reset();
+  }
 }
-
-// const stash = new Stash("merge")
-
-// console.log(stash)
-// stash.add()
