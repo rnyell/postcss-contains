@@ -3,8 +3,8 @@ import { describe, expect, test } from "vitest";
 import { process } from "./index.js";
 
 /**
- * The examples that are tested here are not affected by the `option` that is passed to the plugin.
- * to see examples based on different options check "./options.test.ts"
+ * These tested examples are not affected by the `option` that is passed to the plugin.
+ * To see examples based on different options check "options.test.ts"
  */
 
 describe(`Main examples without duplication case`, () => {
@@ -188,7 +188,7 @@ describe(`Main examples without duplication case`, () => {
     expect(result).toBe(output);
   });
 
-  test("Conflict between single=type & pair-type contains", async () => {
+  test("Conflict between single-type & pair-type @contains", async () => {
     const input = `
       @contains overrides (padding) {
         margin: 0;

@@ -2,10 +2,10 @@
 
 **postcss-contains** enables you to apply styles to selectors based on specific property or declaration (property-value pair).
 
-The `@contains` at-rule targets selectors when they _contain_:
+The `@contains` at-rule targets elements and selectors when they _contain_:
 
-  - A specific property (e.g., `position` or `margin`)
-  - A specific declaration (property-value pair, e.g., `display: grid`)
+  - A specific property (e.g. `position` or `margin`)
+  - A specific declaration (property-value pair, e.g. `display: grid`)
 
 
 ## Installation
@@ -64,7 +64,7 @@ div {
 
 ### Conflicts
 
-- If there's a style conflict between a `@contains` and a selector, the selector's styles prevails by default. To change this, use the `overrides` keyword.
+If there's a style conflict between a `@contains` and a selector, the selector's styles prevails by default. To modify this, use the `overrides` keyword.
 
 ```css
 @contains overrides (display: inline-block) {
@@ -90,20 +90,55 @@ div {
 
 ### Duplications
 
-- If two `@contains` target the same property/declaration, their styles will be merged.
+When two `@contains` rules target the same property or declaration, their styles will merge by default.
 
-You can change this behavior by setting `duplication` option to `"replace"`; in this case, the order of appearance will determine which style should be applied: the latter contains taking precedence over the former.
+You can change this behavior by setting `duplication` option to `"replace"`; in this case, the order of appearance will determine which style should be applied: the later contains takes precedence over the former.
 
-> Note: The `overrides` only affects the conflicts between @contains and selectors, not between duplicated @contains rules.
+```css
+/* Both contains target selectors if they declared `display` property */
+@contains (display) {
+  margin: 1rem;
+  gap: 1rem;
+}
+
+@contains (display) {
+  padding: 1rem;
+}
+
+div {
+  display: flex;
+}
+```
+
+Output (`duplication: "merge"`):
+
+```css
+div {
+  display: flex;
+  margin: 1rem;
+  gap: 1rem;
+  padding: 1rem;
+}
+```
+
+Output (`duplication: "replace"`):
+
+```css
+div {
+  display: flex;
+  padding: 1rem;
+}
+```
 
 > Note: If one of two (or many) @contains defined with `overrides`, their styles will be merged with `overrides` too.
 
-See [options](#options) for more.
+> Note: The `overrides` only affects the conflicts between @contains and selectors, not between duplicated @contains rules.
 
+See [options](#options) for more.
 
 ### Specificity
 
-- "Property-value" matches considered with a specificity so they take precedence over "property-only" matches.
+"Property-value" matches considered with a specificity so they take precedence over "property-only" matches.
 
 In the example below, `overflow: hidden` is more speccific than `display`, so `span` gets the `green` color; howwever the third contains also has a color declaration, since `display: block` and `overflow: hidden` have equal specificity —both are paird— then based on the order of appearance the color will be `blue`.
 
@@ -201,7 +236,7 @@ div {
 }
 ```
 
-**Note:** This option only matters when **two @contains of the same kind are duplicated**. In the following example, "b" and "c" are considered as a duplication but "a" and "b" are not.
+**Note:** This option only matters when **two @contains of the same type are duplicated**. In the following example, "b" and "c" are considered as a duplication but "a" and "b" are not.
 
 ```css
 /* a */
@@ -213,3 +248,5 @@ div {
 /* c */
 @contains (color: red) {}
 ```
+
+More examples are provided [here](./test/exmaples.md).

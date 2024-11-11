@@ -1,3 +1,73 @@
+## Warning & Errors
+
+### Warns
+
+- Empty @contains (contains with no styles)
+
+```css
+@Contains (margin) {/* empty */}
+```
+
+- Using new lines before curly bracket
+
+```css
+@Contains 
+  overrides 
+  (margin) {
+  /* styles */
+}
+```
+
+### Errors
+
+- Nesting rules or at-rules inside style block
+
+```css
+@contains (display: grid) {
+  place-items: center;
+
+  &:hover {
+    scale: 1.2;
+  }
+}
+```
+
+- @contains without styles (curly brackets)
+
+```css
+@contains (margin)
+```
+
+- No property or declaration passed to @contains
+
+```css
+@Contains () {/* styles */}
+```
+
+- Misusing properties e.g. new lines on the parenthesis
+
+```css
+@Contains (dis
+  play: block) {
+    /* styles */
+}
+
+@contains (mar gin: 1rem) {/* styles */}
+```
+
+- Using semicolon in parenthesis
+
+```css
+@Contains (margin;) {/* styles */}
+
+@Contains (inset: auto;) {/* styles */}
+```
+
+
+## Some More Examples
+
+Conflicts between two contains and `div` element
+
 ```css
 /* a */
 @contains overrides (padding) {
@@ -33,7 +103,7 @@ div {
 }
 ```
 
----
+Contains can also modify the targeted declaration; in this example the `span` contains `display: block` so it gets targeted by the second contains, however, the first one overrides the `block` value to `initial`.
 
 ```css
 @contains overrides (color) {
@@ -53,13 +123,13 @@ span {
 Output:
 
 ```css
-div {
+span {
   display: initial;
   color: plum;
 }
 ```
 
----
+A messy one!
 
 
 ```css
@@ -103,7 +173,7 @@ div {
 }
 ```
 
-Output:
+Output: (`duplication: merge`)
 
 ```css
 div {
@@ -121,7 +191,7 @@ div {
 }
 ```
 
----
+Exploring the effect of different options on the output
 
 ```css
 @contains (display: flex) {
@@ -173,7 +243,7 @@ Output: (`duplication: replace`)
 
 ```css
 div {
-  margin: 8px;  /* second @contains has no `overrides` so the margin remain intact */
+  margin: 8px;  /* second @contains has no `overrides` so div's margin remained intact */
   display: grid;
   color: blue;
 }
@@ -184,6 +254,7 @@ Output: (`duplication: merge`)
 ```css
 /*
 merged contains looks like this:
+
 @contains overrides (display: grid) {
   padding: 1rem;
   margin: 1rem;

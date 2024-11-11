@@ -14,6 +14,11 @@ export async function process(css: string, options = defaultOptions) {
   return result.css
 }
 
+export async function warnings(css: string, options = defaultOptions) {
+  const result = await postcss([plug(options)]).process(css, { from: undefined })
+  return result.warnings();
+}
+
 export async function importer(url: string): Promise<string> {
   const result = await import(url)
   return result.default

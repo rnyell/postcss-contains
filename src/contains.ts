@@ -1,5 +1,5 @@
-import type { Container } from "postcss";
-import { lastDecl } from "./utils.js";
+import type { Container, Root, AtRule, Result } from "postcss";
+import { extract, getParams, lastDecl } from "./utils.js";
 
 type Duplication = "merge" | "replace";
 
@@ -182,6 +182,78 @@ export default class Contains {
   }
 
   // 1) collecting all @contains: conditions and their declarations
+  collect(root: Root, result: Result) {
+    root.walkAtRules("contains", (atRule: AtRule) => {
+      const params = getParams(atRule.params);
+      const overrides = atRule.params.startsWith("overrides");
+
+      if (/\n/.test(atRule.params)) {
+        atRule.warn(result, "It's better to not use new lines inside @contains params.");
+      }
+
+      if (!atRule.nodes) {
+        throw new Error(`@contains has no styles (provided no curly brackets).\n   ${atRule.toString()}`);
+      }
+
+      if (atRule.nodes.length === 0) {
+        atRule.warn(result, `The @contains was empty; it provides no styles.`);
+      }
+
+      const isInvalidType = atRule.nodes.some(child => 
+        child.type === "rule" || child.type === "atrule"
+      );
+
+      if (isInvalidType) {
+        throw new Error(`rules and at-rules can not be nested inside @contains.\n   ${atRule.toString()}`);
+      }
+
+      if (params.includes(":")) {
+        const { property, value } = extract(params, "pair");
+
+        if (!property || !value) {
+          throw new Error(`Something went wrong on \t ${atRule.toString()} \n\t >>> property: ${property} - value: ${value}`);
+        }
+
+        const variant: "pair" | "single" = "pair";
+        const declarations = new Map<string, string>();
+
+        for (const node of atRule.nodes) {
+          if (node.type === "decl") {
+            const { prop, value, important } = node;
+            // const declaration = new Declaration({ prop, value, important });
+            declarations.set(prop, value);
+          }
+        }
+
+        const bucket = { value, variant, overrides, declarations };
+        this.add(property, bucket);
+        atRule.remove();
+        return;
+      } else {
+        const { property } = extract(params, "single");
+
+        if (!property) {
+          throw new Error(`Something went wrong on \t ${atRule.toString()} \n\t >>> property: ${property}`);
+        }
+
+        const variant: "pair" | "single" = "single";
+        const declarations = new Map<string, string>();
+
+        for (const node of atRule.nodes) {
+          if (node.type === "decl") {
+            const { prop, value, important } = node;
+            declarations.set(prop, value);
+          }
+        }
+
+        const bucket = { value: null, variant, overrides, declarations };
+        this.add(property, bucket);
+        atRule.remove();
+        return;
+      }
+    })
+  }
+
   add(property: string, bucket: Bucket) {
     if (bucket.variant === "pair") {
       this.#pairs.add(property, bucket);
