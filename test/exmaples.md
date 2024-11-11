@@ -42,7 +42,7 @@
 - No property or declaration passed to @contains
 
 ```css
-@Contains() {
+@Contains () {
   /* styles */
 }
 ```

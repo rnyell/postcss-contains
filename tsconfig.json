@@ -19,5 +19,5 @@
     "outDir": "dist",
     "sourceMap": true
   },
-  "exclude": ["dist", "test"]
+  "include": ["src"]
 }

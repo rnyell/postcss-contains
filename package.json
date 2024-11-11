@@ -1,6 +1,6 @@
 {
   "name": "postcss-contains",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A PostCSS plugin to styles selectors based on specific declaration or property.",
   "keywords": [
     "postcss",
@@ -27,7 +27,7 @@
     "test": "vitest run",
     "ci": "npm run build && npm run check-format && npm run test"
   },
-  "dependencies": {
+  "peerDependencies": {
     "postcss": "^8.4.47"
   },
   "devDependencies": {

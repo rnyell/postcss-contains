@@ -14,8 +14,10 @@ const plugin: PluginCreator<PluginOptions> = (opts?: PluginOptions) => {
   return {
     postcssPlugin: "postcss-contains",
 
-    Once(root, { result }) {
-      contains.collect(root, result);
+    AtRule: {
+      contains(atRule, { result }) {
+        contains.collect(atRule, result);
+      },
     },
 
     Rule(rule) {

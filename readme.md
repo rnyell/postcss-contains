@@ -7,21 +7,23 @@ The `@contains` at-rule targets elements and selectors when they _contain_:
 - A specific property (e.g. `position` or `margin`)
 - A specific declaration (property-value pair, e.g. `display: grid`)
 
+
 ## Installation
 
 ```sh
 npm install postcss-contains --save-dev
 ```
 
+
 ## Usage
 
 ```js
 // postcss.config.js
-import postcssContains from "postcss-contains";
+import postcssContains from "postcss-contains"
 
 export default {
   plugins: [postcssContains],
-};
+}
 ```
 
 ```css
@@ -86,6 +88,7 @@ div {
 }
 ```
 
+
 ### Duplications
 
 When two `@contains` rules target the same property or declaration, their styles will merge by default.
@@ -134,6 +137,7 @@ div {
 
 See [options](#options) for more.
 
+
 ### Specificity
 
 "Property-value" matches considered with a specificity so they take precedence over "property-only" matches.
@@ -168,6 +172,7 @@ span {
   color: blue;
 }
 ```
+
 
 ## Options
 
@@ -236,16 +241,13 @@ div {
 
 ```css
 /* a */
-@contains (color) {
-}
+@contains (color) {}
 
 /* b */
-@contains (color: red) {
-}
+@contains (color: red) {}
 
 /* c */
-@contains (color: red) {
-}
+@contains (color: red) {}
 ```
 
 More examples are provided [here](./test/exmaples.md).
