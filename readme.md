@@ -4,16 +4,14 @@
 
 The `@contains` at-rule targets elements and selectors when they _contain_:
 
-  - A specific property (e.g. `position` or `margin`)
-  - A specific declaration (property-value pair, e.g. `display: grid`)
-
+- A specific property (e.g. `position` or `margin`)
+- A specific declaration (property-value pair, e.g. `display: grid`)
 
 ## Installation
 
 ```sh
 npm install postcss-contains --save-dev
 ```
-
 
 ## Usage
 
@@ -22,7 +20,7 @@ npm install postcss-contains --save-dev
 import postcssContains from "postcss-contains"
 
 export default {
-  plugins: [ postcssContains ]
+  plugins: [postcssContains]
 }
 ```
 
@@ -171,7 +169,6 @@ span {
 }
 ```
 
-
 ## Options
 
 #### `duplication`
@@ -179,7 +176,6 @@ span {
 type: `"merge" | "replace"`
 
 default: `"merge"`
-
 
 #### `duplication: "merge"`
 
@@ -202,7 +198,7 @@ Output:
 ```css
 div {
   padding: 0.5rem 1rem;
-  margin: 1rem;  /* there wouldn't be any margin if duplication was "replace" */
+  margin: 1rem; /* there wouldn't be any margin if duplication was "replace" */
   border: 0;
 }
 ```

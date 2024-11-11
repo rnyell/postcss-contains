@@ -5,14 +5,15 @@
 - Empty @contains (contains with no styles)
 
 ```css
-@Contains (margin) {/* empty */}
+@contains (margin) {
+  /* empty */
+}
 ```
 
 - Using new lines before curly bracket
 
 ```css
-@Contains 
-  overrides 
+@contains overrides 
   (margin) {
   /* styles */
 }
@@ -35,34 +36,41 @@
 - @contains without styles (curly brackets)
 
 ```css
-@contains (margin)
+@contains (margin);
 ```
 
 - No property or declaration passed to @contains
 
 ```css
-@Contains () {/* styles */}
+@Contains() {
+  /* styles */
+}
 ```
 
 - Misusing properties e.g. new lines on the parenthesis
 
 ```css
-@Contains (dis
+@contains (dis
   play: block) {
-    /* styles */
+  /* styles */
 }
 
-@contains (mar gin: 1rem) {/* styles */}
+@contains (mar gin: 1rem) {
+  /* styles */
+}
 ```
 
 - Using semicolon in parenthesis
 
 ```css
-@Contains (margin;) {/* styles */}
+@contains (margin;) {
+  /* styles */
+}
 
-@Contains (inset: auto;) {/* styles */}
+@contains (inset: auto;) {
+  /* styles */
+}
 ```
-
 
 ## Some More Examples
 
@@ -130,7 +138,6 @@ span {
 ```
 
 A messy one!
-
 
 ```css
 @contains (padding: 1rem) {
@@ -243,7 +250,7 @@ Output: (`duplication: replace`)
 
 ```css
 div {
-  margin: 8px;  /* second @contains has no `overrides` so div's margin remained intact */
+  margin: 8px; /* second @contains has no `overrides` so div's margin remained intact */
   display: grid;
   color: blue;
 }

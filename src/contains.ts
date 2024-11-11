@@ -40,13 +40,12 @@ type Store = Set<Pack>;
 
 const STORE: Store = new Set();
 
-
 class Pairs {
   #duplication: Duplication = "merge";
   properties: string[] = [];
   buckets: Bucket[] = [];
-  static indices: number[] = [];          // holds the indices of matched properties temply
-  static duplicatedIndex: number | null;  // holde duplicated index temply
+  static indices: number[] = []; // holds the indices of matched properties temply
+  static duplicatedIndex: number | null; // holde duplicated index temply
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
@@ -83,18 +82,18 @@ class Pairs {
   }
 
   resolve(bucket: Bucket) {
-    let oldBucket = this.buckets[Pairs.duplicatedIndex!];  //!
+    let oldBucket = this.buckets[Pairs.duplicatedIndex!]; //!
     let oldDecls = oldBucket?.declarations;
     let newDecls = bucket.declarations;
 
     if (oldDecls) {
       if (this.#duplication === "merge") {
         const mergedDecls = new Map([...oldDecls, ...newDecls]);
-        oldBucket!.declarations = mergedDecls;                             //!
-        oldBucket!.overrides = oldBucket?.overrides || bucket?.overrides;  //!
+        oldBucket!.declarations = mergedDecls; //!
+        oldBucket!.overrides = oldBucket?.overrides || bucket?.overrides; //!
       } else {
-        oldBucket!.declarations = newDecls;       //!
-        oldBucket!.overrides = bucket.overrides;  //!
+        oldBucket!.declarations = newDecls; //!
+        oldBucket!.overrides = bucket.overrides; //!
       }
     }
 
@@ -108,10 +107,9 @@ class Pairs {
   }
 }
 
-
 class Singles {
   #duplication: Duplication = "merge";
-  #piles = new Map<string, Pile>();          //+ Wrrr: "V" is `Pile` but we are sending `Bucket`
+  #piles = new Map<string, Pile>(); //+ Wrrr: "V" is `Pile` but we are sending `Bucket`
   static duplicatedProperty: string | null;
 
   constructor(duplication: Duplication) {
@@ -150,11 +148,11 @@ class Singles {
       if (oldDecls) {
         if (this.#duplication === "merge") {
           let mergedDecls = new Map([...oldDecls, ...newDecls]);
-          oldBucket!.declarations = mergedDecls;                           //!
+          oldBucket!.declarations = mergedDecls; //!
           oldBucket!.overrides = oldBucket!.overrides || bucket.overrides; //!
         } else {
-          oldBucket!.declarations = bucket.declarations;  //!
-          oldBucket!.overrides = bucket.overrides;        //!
+          oldBucket!.declarations = bucket.declarations; //!
+          oldBucket!.overrides = bucket.overrides; //!
         }
       }
     }
@@ -167,13 +165,12 @@ class Singles {
   }
 }
 
-
 export default class Contains {
   #duplication: Duplication = "merge";
   #container: Container | undefined;
   #pairs;
   #singles;
-  static declarations = new Map<string, Vals>();    // holds all containers' decls temporarily
+  static declarations = new Map<string, Vals>(); // holds all containers' decls temporarily
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
@@ -188,30 +185,39 @@ export default class Contains {
       const overrides = atRule.params.startsWith("overrides");
 
       if (/\n/.test(atRule.params)) {
-        atRule.warn(result, "It's better to not use new lines inside @contains params.");
+        atRule.warn(
+          result,
+          "It's better to not use new lines inside @contains params.",
+        );
       }
 
       if (!atRule.nodes) {
-        throw new Error(`@contains has no styles (provided no curly brackets).\n   ${atRule.toString()}`);
+        throw new Error(
+          `@contains has no styles (provided no curly brackets).\n   ${atRule.toString()}`,
+        );
       }
 
       if (atRule.nodes.length === 0) {
         atRule.warn(result, `The @contains was empty; it provides no styles.`);
       }
 
-      const isInvalidType = atRule.nodes.some(child => 
-        child.type === "rule" || child.type === "atrule"
+      const isInvalidType = atRule.nodes.some(
+        (child) => child.type === "rule" || child.type === "atrule",
       );
 
       if (isInvalidType) {
-        throw new Error(`rules and at-rules can not be nested inside @contains.\n   ${atRule.toString()}`);
+        throw new Error(
+          `rules and at-rules can not be nested inside @contains.\n   ${atRule.toString()}`,
+        );
       }
 
       if (params.includes(":")) {
         const { property, value } = extract(params, "pair");
 
         if (!property || !value) {
-          throw new Error(`Something went wrong on \t ${atRule.toString()} \n\t >>> property: ${property} - value: ${value}`);
+          throw new Error(
+            `Something went wrong on \t ${atRule.toString()} \n\t >>> property: ${property} - value: ${value}`,
+          );
         }
 
         const variant: "pair" | "single" = "pair";
@@ -233,7 +239,9 @@ export default class Contains {
         const { property } = extract(params, "single");
 
         if (!property) {
-          throw new Error(`Something went wrong on \t ${atRule.toString()} \n\t >>> property: ${property}`);
+          throw new Error(
+            `Something went wrong on \t ${atRule.toString()} \n\t >>> property: ${property}`,
+          );
         }
 
         const variant: "pair" | "single" = "single";
@@ -251,7 +259,7 @@ export default class Contains {
         atRule.remove();
         return;
       }
-    })
+    });
   }
 
   add(property: string, bucket: Bucket) {
@@ -267,7 +275,7 @@ export default class Contains {
     let found: boolean | undefined;
 
     // #container can't be `undefined` here, so `!` is used //!
-    this.#container!.each(child => {
+    this.#container!.each((child) => {
       if (child.type === "decl") {
         for (const pack of STORE) {
           const property = pack.property;
@@ -299,18 +307,18 @@ export default class Contains {
     let declarations = bucket.declarations;
 
     for (const [property, value] of declarations) {
-      /** 
-       * if a property already exist: 
+      /**
+       * if a property already exist:
        *  - the "pair" one should overwrite the "single" one
        *  - the later "pair" should overwrite the previous one
-      */
+       */
       if (this.declarations.has(property)) {
-        const existingVariant = this.declarations.get(property)?.variant
+        const existingVariant = this.declarations.get(property)?.variant;
         if (existingVariant === "pair" && variant === "single") {
           continue;
         } else {
           const val = { value, overrides, variant };
-          this.declarations.set(property, val);  
+          this.declarations.set(property, val);
         }
       } else {
         const val = { value, overrides, variant };
@@ -328,7 +336,7 @@ export default class Contains {
     const found = this.find();
 
     if (found) {
-      this.#container?.each(child => {
+      this.#container?.each((child) => {
         if (child.type === "decl") {
           if (Contains.declarations.has(child.prop)) {
             const vals = Contains.declarations.get(child.prop);
@@ -339,19 +347,19 @@ export default class Contains {
             }
           }
         }
-      })
+      });
     } else {
       return;
     }
 
-    const last = lastDecl(this.#container!);  //!
+    const last = lastDecl(this.#container!); //!
     const temp = last?.cloneAfter();
 
     for (const [property, vals] of Contains.declarations) {
       temp?.before({
         prop: property,
         value: vals.value,
-      })
+      });
     }
 
     temp?.remove();

@@ -1,6 +1,5 @@
 import type { Container } from "postcss";
 
-
 export function getParams(params: string) {
   if (params.includes(";")) {
     throw new Error(`Semicolons are not allowed inside @contains params. ${params}`);
@@ -10,8 +9,8 @@ export function getParams(params: string) {
 
   const normed = params
     .trim()
-    .replace(/(\r\n|\n|\r)/gm,"")
-    .replace(/\t/g," ");
+    .replace(/(\r\n|\n|\r)/gm, "")
+    .replace(/\t/g, " ");
 
   const match = normed.match(regex);
 
@@ -22,7 +21,6 @@ export function getParams(params: string) {
   }
 }
 
-
 export function extract(params: string, variant: "pair" | "single") {
   switch (variant) {
     case "pair": {
@@ -30,7 +28,9 @@ export function extract(params: string, variant: "pair" | "single") {
       const match = params.match(re);
 
       if (!match || !match.groups) {
-        throw new Error(`Syntax Error on \n\t >>> ${params} \n\t using new line or semicolon inside parenthesis is not allowed.`);
+        throw new Error(
+          `Syntax Error on \n\t >>> ${params} \n\t using new line or semicolon inside parenthesis is not allowed.`,
+        );
       }
 
       const property = match.groups.property?.trim();
@@ -42,7 +42,9 @@ export function extract(params: string, variant: "pair" | "single") {
       const match = params.match(re);
 
       if (!match || !match.groups) {
-        throw new Error(`Syntax Error on \n\t >>> ${params} \n\t using new line or semicolon inside parenthesis is not allowed.`);
+        throw new Error(
+          `Syntax Error on \n\t >>> ${params} \n\t using new line or semicolon inside parenthesis is not allowed.`,
+        );
       }
 
       const property = match.groups.property?.trim();
@@ -56,7 +58,6 @@ export function extract(params: string, variant: "pair" | "single") {
   }
 }
 
-
 export function lastDecl(container: Container) {
   let last = container.last;
 
@@ -67,7 +68,7 @@ export function lastDecl(container: Container) {
   if (last.type === "decl") {
     return last;
   }
-  
+
   while (last?.type !== "decl") {
     last = last?.prev();
   }
