@@ -17,11 +17,11 @@ npm install postcss-contains --save-dev
 
 ```js
 // postcss.config.js
-import postcssContains from "postcss-contains"
+import postcssContains from "postcss-contains";
 
 export default {
-  plugins: [postcssContains]
-}
+  plugins: [postcssContains],
+};
 ```
 
 ```css
@@ -236,13 +236,16 @@ div {
 
 ```css
 /* a */
-@contains (color) {}
+@contains (color) {
+}
 
 /* b */
-@contains (color: red) {}
+@contains (color: red) {
+}
 
 /* c */
-@contains (color: red) {}
+@contains (color: red) {
+}
 ```
 
 More examples are provided [here](./test/exmaples.md).
