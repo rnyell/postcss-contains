@@ -70,6 +70,62 @@ describe(`Main examples without duplication case`, () => {
     expect(result).toBe(output);
   });
 
+  test("Targeting nested rules — 1", async () => {
+    const input = `
+      @contains (position) {
+        isolation: isolate;
+      }
+
+      div {
+        & span {
+          position: absolute;
+        }
+      }
+    `;
+
+    const output = `
+      div {
+        & span {
+          position: absolute;
+          isolation: isolate;
+        }
+      }
+    `;
+
+    const result = await process(input);
+    expect(result).toBe(output);
+  });
+
+  test("Targeting nested rules — 2", async () => {
+    const input = `
+      @contains (max-width) {
+        margin-inline: auto;
+      }
+
+      div {
+        display: grid;
+
+        @media (width < 1080px) {
+          max-width: 780px;
+        }
+      }
+    `;
+
+    const output = `
+      div {
+        display: grid;
+
+        @media (width < 1080px) {
+          max-width: 780px;
+          margin-inline: auto;
+        }
+      }
+    `;
+
+    const result = await process(input);
+    expect(result).toBe(output);
+  });
+
   test("Style Conflict between one @contains and one selector", async () => {
     const input = `
       @contains overrides (display: inline-block) {

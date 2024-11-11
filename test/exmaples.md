@@ -74,6 +74,31 @@
 
 ## Some More Examples
 
+Targeting nested rules
+
+```css
+@contains (position) {
+  isolation: isolate;
+}
+
+div {
+  & span {
+    position: absolute;
+  }
+}
+```
+
+Output:
+
+```css
+div {
+  & span {
+    position: absolute;
+    isolation: isolate;
+  }
+}
+```
+
 Conflicts between two contains and `div` element
 
 ```css
