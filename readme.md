@@ -1,5 +1,7 @@
 # postcss-contains
 
+![Build status](https://github.com/rnyell/postcss-contains/actions/workflows/ci.yml/badge.svg)
+
 **postcss-contains** enables you to apply styles to selectors based on specific property or declaration (property-value pair).
 
 The `@contains` at-rule targets elements and selectors when they _contain_:

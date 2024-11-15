@@ -1,4 +1,4 @@
-import type { Container, Root, AtRule, Result } from "postcss";
+import type { Container, AtRule, Result } from "postcss";
 import { extract, getParams, lastDecl } from "./utils.js";
 
 type Duplication = "merge" | "replace";
@@ -170,7 +170,7 @@ export default class Contains {
   #container: Container | undefined;
   #pairs;
   #singles;
-  static declarations = new Map<string, Vals>(); // holds all containers' decls temporarily
+  #declarations = new Map<string, Vals>(); // holds all containers' decls temporarily
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
@@ -178,7 +178,7 @@ export default class Contains {
     this.#pairs = new Pairs(this.#duplication);
   }
 
-  // 1) collecting all @contains: conditions and their declarations
+  // 1) collecting all @contains: queries and their declarations
   collect(atRule: AtRule, result: Result) {
     const params = getParams(atRule.params);
     const overrides = atRule.params.startsWith("overrides");
@@ -272,7 +272,6 @@ export default class Contains {
   find() {
     let found: boolean | undefined;
 
-    // #container can't be `undefined` here, so `!` is used //!
     this.#container!.each((child) => {
       if (child.type === "decl") {
         for (const pack of STORE) {
@@ -281,12 +280,12 @@ export default class Contains {
 
           if (bucket.variant === "pair") {
             if (child.prop === property && child.value === bucket.value) {
-              Contains.setDecls(bucket);
+              this.#setDecls(bucket);
               found = true;
             }
           } else if (bucket.variant === "single") {
             if (child.prop === property) {
-              Contains.setDecls(bucket);
+              this.#setDecls(bucket);
               found = true;
             }
           }
@@ -299,28 +298,28 @@ export default class Contains {
     return found;
   }
 
-  static setDecls(bucket: Bucket) {
+  #setDecls(bucket: Bucket) {
     let variant = bucket.variant;
     let overrides = bucket.overrides;
     let declarations = bucket.declarations;
 
     for (const [property, value] of declarations) {
       /**
-       * if a property already exist:
+       * if a property already exists:
        *  - the "pair" one should overwrite the "single" one
-       *  - the later "pair" should overwrite the previous one
+       *  - the later "pair"/"single" should overwrite the previous "pair"/"single"
        */
-      if (this.declarations.has(property)) {
-        const existingVariant = this.declarations.get(property)?.variant;
+      if (this.#declarations.has(property)) {
+        const existingVariant = this.#declarations.get(property)?.variant;
         if (existingVariant === "pair" && variant === "single") {
           continue;
         } else {
           const val = { value, overrides, variant };
-          this.declarations.set(property, val);
+          this.#declarations.set(property, val);
         }
       } else {
         const val = { value, overrides, variant };
-        this.declarations.set(property, val);
+        this.#declarations.set(property, val);
       }
     }
   }
@@ -336,12 +335,12 @@ export default class Contains {
     if (found) {
       this.#container?.each((child) => {
         if (child.type === "decl") {
-          if (Contains.declarations.has(child.prop)) {
-            const vals = Contains.declarations.get(child.prop);
+          if (this.#declarations.has(child.prop)) {
+            const vals = this.#declarations.get(child.prop);
             if (vals?.overrides) {
               child.remove();
             } else {
-              Contains.declarations.delete(child.prop);
+              this.#declarations.delete(child.prop);
             }
           }
         }
@@ -353,7 +352,7 @@ export default class Contains {
     const last = lastDecl(this.#container!); //!
     const temp = last?.cloneAfter();
 
-    for (const [property, vals] of Contains.declarations) {
+    for (const [property, vals] of this.#declarations) {
       temp?.before({
         prop: property,
         value: vals.value,
@@ -365,7 +364,7 @@ export default class Contains {
 
   end() {
     this.#container = undefined;
-    Contains.declarations.clear();
+    this.#declarations.clear();
   }
 
   reset() {
