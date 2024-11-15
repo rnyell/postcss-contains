@@ -214,7 +214,8 @@ div {
 
 ```css
 @contains overrides (display: grid) {
-  /* this looses the conflict to the below contains despite including `overrides`; as mentioned, `overrides` only comes to play when there is a conflict between @contains and selectors styles, not when two `@contains` are duplicated. */
+  /* this looses the conflict to the below contains despite including `overrides`;
+  as mentioned, `overrides` only comes to play when there is a conflict between @contains and selectors styles, not when two `@contains` are duplicated. */
   padding: 1rem;
   color: red;
 }

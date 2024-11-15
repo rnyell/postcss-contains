@@ -42,8 +42,8 @@ const STORE: Store = new Set();
 
 class Pairs {
   #duplication: Duplication = "merge";
-  properties: string[] = [];
-  buckets: Bucket[] = [];
+  #properties: string[] = [];
+  #buckets: Bucket[] = [];
   static indices: number[] = []; // holds the indices of matched properties temply
   static duplicatedIndex: number | null; // holde duplicated index temply
 
@@ -52,27 +52,27 @@ class Pairs {
   }
 
   add(property: string, bucket: Bucket) {
-    const isDuplicated = this.isDuplicated(property, bucket);
+    const isDuplicated = this.#isDuplicated(property, bucket);
 
     if (isDuplicated) {
-      this.resolve(bucket);
+      this.#resolve(bucket);
       return;
     }
 
-    this.properties.push(property);
-    this.buckets.push(bucket);
+    this.#properties.push(property);
+    this.#buckets.push(bucket);
     STORE.add({ property, bucket });
   }
 
-  isDuplicated(property: string, bucket: Bucket) {
-    this.properties.forEach((p, i) => {
+  #isDuplicated(property: string, bucket: Bucket) {
+    this.#properties.forEach((p, i) => {
       if (p === property) {
         Pairs.indices.push(i);
       }
     });
 
     for (const index of Pairs.indices) {
-      if (this.buckets[index]?.value === bucket.value) {
+      if (this.#buckets[index]?.value === bucket.value) {
         Pairs.duplicatedIndex = index;
         return true;
       }
@@ -81,8 +81,8 @@ class Pairs {
     return false;
   }
 
-  resolve(bucket: Bucket) {
-    let oldBucket = this.buckets[Pairs.duplicatedIndex!]; //!
+  #resolve(bucket: Bucket) {
+    let oldBucket = this.#buckets[Pairs.duplicatedIndex!]; //!
     let oldDecls = oldBucket?.declarations;
     let newDecls = bucket.declarations;
 
@@ -102,8 +102,8 @@ class Pairs {
   }
 
   reset() {
-    this.properties = [];
-    this.buckets = [];
+    this.#properties = [];
+    this.#buckets = [];
   }
 }
 
@@ -117,10 +117,10 @@ class Singles {
   }
 
   add(property: string, bucket: Bucket) {
-    const isDuplicated = this.isDuplicated(property);
+    const isDuplicated = this.#isDuplicated(property);
 
     if (isDuplicated) {
-      this.resolve(bucket);
+      this.#resolve(bucket);
       return;
     }
 
@@ -128,7 +128,7 @@ class Singles {
     STORE.add({ property, bucket });
   }
 
-  isDuplicated(property: string) {
+  #isDuplicated(property: string) {
     if (this.#piles.has(property)) {
       Singles.duplicatedProperty = property;
       return true;
@@ -137,7 +137,7 @@ class Singles {
     }
   }
 
-  resolve(bucket: Bucket) {
+  #resolve(bucket: Bucket) {
     const property = Singles.duplicatedProperty;
 
     if (property) {
@@ -269,7 +269,7 @@ export default class Contains {
   }
 
   // 2) check each rule to find matches property/declaration
-  find() {
+  #find() {
     let found: boolean | undefined;
 
     this.#container!.each((child) => {
@@ -330,7 +330,7 @@ export default class Contains {
   }
 
   process() {
-    const found = this.find();
+    const found = this.#find();
 
     if (found) {
       this.#container?.each((child) => {
