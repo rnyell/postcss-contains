@@ -1,9 +1,9 @@
 import type { Container, AtRule, Result } from "postcss";
-import { extract, getParams, lastDecl } from "./utils.js";
+import { checkIssues, extract, getParams, lastDecl } from "./utils.js";
 
 type Duplication = "merge" | "replace";
 
-type Variant = "pair" | "single";
+type Variant = "single" | "pair";
 
 type Bucket = {
   variant: Variant;
@@ -19,11 +19,7 @@ type Bucket = {
 //   declarations: Map<string, string>;
 // };
 
-type Pile = {
-  variant: Variant;
-  overrides?: boolean;
-  declarations: Map<string, string>;
-};
+type Pile = Omit<Bucket, "value">;
 
 type Vals = {
   variant: Variant;
@@ -44,8 +40,8 @@ class Pairs {
   #duplication: Duplication = "merge";
   #properties: string[] = [];
   #buckets: Bucket[] = [];
-  static indices: number[] = []; // holds the indices of matched properties temply
-  static duplicatedIndex: number | null; // holde duplicated index temply
+  static #indices: number[] = []; // holds the indices of matched properties temply
+  static #duplicatedIndex: number | null; // holde duplicated index temply
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
@@ -67,13 +63,13 @@ class Pairs {
   #isDuplicated(property: string, bucket: Bucket) {
     this.#properties.forEach((p, i) => {
       if (p === property) {
-        Pairs.indices.push(i);
+        Pairs.#indices.push(i);
       }
     });
 
-    for (const index of Pairs.indices) {
+    for (const index of Pairs.#indices) {
       if (this.#buckets[index]?.value === bucket.value) {
-        Pairs.duplicatedIndex = index;
+        Pairs.#duplicatedIndex = index;
         return true;
       }
     }
@@ -82,7 +78,7 @@ class Pairs {
   }
 
   #resolve(bucket: Bucket) {
-    let oldBucket = this.#buckets[Pairs.duplicatedIndex!]; //!
+    let oldBucket = this.#buckets[Pairs.#duplicatedIndex!]; //!
     let oldDecls = oldBucket?.declarations;
     let newDecls = bucket.declarations;
 
@@ -97,8 +93,8 @@ class Pairs {
       }
     }
 
-    Pairs.indices = [];
-    Pairs.duplicatedIndex = null;
+    Pairs.#indices = [];
+    Pairs.#duplicatedIndex = null;
   }
 
   reset() {
@@ -110,7 +106,7 @@ class Pairs {
 class Singles {
   #duplication: Duplication = "merge";
   #piles = new Map<string, Pile>(); //+ Wrrr: "V" is `Pile` but we are sending `Bucket`
-  static duplicatedProperty: string | null;
+  static #duplicatedProperty: string | null;
 
   constructor(duplication: Duplication) {
     this.#duplication = duplication;
@@ -130,7 +126,7 @@ class Singles {
 
   #isDuplicated(property: string) {
     if (this.#piles.has(property)) {
-      Singles.duplicatedProperty = property;
+      Singles.#duplicatedProperty = property;
       return true;
     } else {
       return false;
@@ -138,7 +134,7 @@ class Singles {
   }
 
   #resolve(bucket: Bucket) {
-    const property = Singles.duplicatedProperty;
+    const property = Singles.#duplicatedProperty;
 
     if (property) {
       let oldBucket = this.#piles.get(property);
@@ -157,7 +153,7 @@ class Singles {
       }
     }
 
-    Singles.duplicatedProperty = null;
+    Singles.#duplicatedProperty = null;
   }
 
   reset() {
@@ -183,35 +179,11 @@ export default class Contains {
     const params = getParams(atRule.params);
     const overrides = atRule.params.startsWith("overrides");
 
-    if (/\n/.test(atRule.params)) {
-      atRule.warn(
-        result,
-        "It's better to not use new lines inside @contains params.",
-      );
-    }
-
-    if (!atRule.nodes) {
-      throw atRule.error(
-        `@contains has no styles (provided no curly brackets).\n   ${atRule.toString()}`,
-      );
-    }
-
-    if (atRule.nodes.length === 0) {
-      atRule.warn(result, `The @contains was empty; it provides no styles.`);
-    }
-
-    const isInvalidType = atRule.nodes.some(
-      (child) => child.type === "rule" || child.type === "atrule",
-    );
-
-    if (isInvalidType) {
-      throw atRule.error(
-        `rules and at-rules can not be nested inside @contains.\n   ${atRule.toString()}`,
-      );
-    }
+    checkIssues(atRule, result);
 
     if (params.includes(":")) {
-      const { property, value } = extract(params, "pair");
+      const variant: Variant = "pair";
+      const { property, value } = extract(params, variant);
 
       if (!property || !value) {
         throw atRule.error(
@@ -219,10 +191,9 @@ export default class Contains {
         );
       }
 
-      const variant: "pair" | "single" = "pair";
       const declarations = new Map<string, string>();
 
-      for (const node of atRule.nodes) {
+      for (const node of atRule.nodes!) { //!
         if (node.type === "decl") {
           const { prop, value, important } = node;
           // const declaration = new Declaration({ prop, value, important });
@@ -235,7 +206,8 @@ export default class Contains {
       atRule.remove();
       return;
     } else {
-      const { property } = extract(params, "single");
+      const variant: Variant = "single";
+      const { property } = extract(params, variant);
 
       if (!property) {
         throw atRule.error(
@@ -243,10 +215,9 @@ export default class Contains {
         );
       }
 
-      const variant: "pair" | "single" = "single";
       const declarations = new Map<string, string>();
 
-      for (const node of atRule.nodes) {
+      for (const node of atRule.nodes!) { //!
         if (node.type === "decl") {
           const { prop, value, important } = node;
           declarations.set(prop, value);

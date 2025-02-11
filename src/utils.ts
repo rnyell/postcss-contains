@@ -1,4 +1,4 @@
-import type { Container } from "postcss";
+import type { AtRule, Container, Result } from "postcss";
 
 export function getParams(params: string) {
   if (params.includes(";")) {
@@ -55,6 +55,32 @@ export function extract(params: string, variant: "pair" | "single") {
 
       return { property };
     }
+  }
+}
+
+export function checkIssues(atRule: AtRule, result: Result) {
+  if (/\n/.test(atRule.params)) {
+    atRule.warn(result, "It's better to not use new lines inside @contains params.");
+  }
+
+  if (!atRule.nodes) {
+    throw atRule.error(
+      `@contains has no styles (provided no curly brackets).\n   ${atRule.toString()}`,
+    );
+  }
+
+  if (atRule.nodes.length === 0) {
+    atRule.warn(result, `The @contains was empty; it provides no styles.`);
+  }
+
+  const isInvalidType = atRule.nodes.some(
+    (child) => child.type === "rule" || child.type === "atrule",
+  );
+
+  if (isInvalidType) {
+    throw atRule.error(
+      `rules and at-rules can not be nested inside @contains.\n   ${atRule.toString()}`,
+    );
   }
 }
 

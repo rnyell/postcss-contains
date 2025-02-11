@@ -86,7 +86,7 @@ Output:
 div {
   display: inline-block;
   padding: 1rem;
-  color: red;
+  color: red; /* the color would remain intact if the `override` was not present */
 }
 ```
 
@@ -98,7 +98,7 @@ When two `@contains` rules target the same property or declaration, their styles
 You can change this behavior by setting `duplication` option to `"replace"`; in this case, the order of appearance will determine which style should be applied: the later contains takes precedence over the former.
 
 ```css
-/* Both contains target selectors if they declared `display` property */
+/* Both `@contains` target selectors if they declared `display` property */
 @contains (display) {
   margin: 1rem;
   gap: 1rem;
@@ -113,7 +113,7 @@ div {
 }
 ```
 
-Output (`duplication: "merge"`):
+Output (with `duplication: "merge"` option - default behavior):
 
 ```css
 div {
@@ -124,7 +124,7 @@ div {
 }
 ```
 
-Output (`duplication: "replace"`):
+Output (with `duplication: "replace"`):
 
 ```css
 div {
@@ -142,7 +142,7 @@ See [options](#options) for more.
 
 ### Specificity
 
-"Property-value" matches considered with a specificity so they take precedence over "property-only" matches.
+"Property-value" matches have higher specificity and therefore they take precedence over "property-only" matches.
 
 In the example below, `overflow: hidden` is more speccific than `display`, so `span` gets the `green` color; howwever the third contains also has a color declaration, since `display: block` and `overflow: hidden` have equal specificity —both are paird— then based on the order of appearance the color will be `blue`.
 
