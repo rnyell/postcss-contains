@@ -193,7 +193,8 @@ export default class Contains {
 
       const declarations = new Map<string, string>();
 
-      for (const node of atRule.nodes!) { //!
+      for (const node of atRule.nodes!) {
+        //!
         if (node.type === "decl") {
           const { prop, value, important } = node;
           // const declaration = new Declaration({ prop, value, important });
@@ -217,7 +218,8 @@ export default class Contains {
 
       const declarations = new Map<string, string>();
 
-      for (const node of atRule.nodes!) { //!
+      for (const node of atRule.nodes!) {
+        //!
         if (node.type === "decl") {
           const { prop, value, important } = node;
           declarations.set(prop, value);
